@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+# encoding: utf-8
+"""
+conf.py: lists davitrans configuration on sql table
+
+Created by Ramón Barrios Láscar, 2025-02-22
+"""
+
+# import sqlite3
+from optparse import OptionParser, SUPPRESS_HELP
+# from time import sleep
+import os
+import subprocess
+import sys
+
+def show_connections(sqlite, dbfilename, format):
+  """
+  List the connection definitions
+  """
+  
+  sql = f"SELECT * FROM cxdef ORDER BY id"
+  full_cmd = [ sqlite, format, dbfilename, sql ]
+  global Options
+  
+  if Options.DEBUG:
+    print(f"-> full_cmd='%s'"%(full_cmd), file=sys.stderr)
+  try:                                     
+    cx_lines = ""
+    cx_lines = subprocess.check_output(full_cmd, shell=False)
+    cx_lines = cx_lines.decode('utf-8')
+    if len(cx_lines)>0:
+      if Options.DEBUG:
+        print(f"-> cx_lines='%s'"%(cx_lines,), file=sys.stderr)
+        sys.stderr.flush()
+      else:
+        print(f"\n─────────┤%8s├─────────"%('cxdef'.center(8),))
+        print(cx_lines, end="")
+  except subprocess.CalledProcessError as pe:
+    if pe.returncode!=0:
+      print(f"-> using '%s' returned %d"%(full_cmd,pe.returncode,))
+      rc = pe.returncode
+  
+def show_uploads(sqlite, dbfilename, format):
+  """
+  List the upload transmission definitios
+  """
+  sql = f"SELECT * FROM tx ORDER BY id"
+  full_cmd = [ sqlite, format, dbfilename, sql ]
+  global Options
+  
+  if Options.DEBUG:
+    print(f"-> full_cmd='%s'"%(full_cmd,), file=sys.stderr)
+  try:                                     
+    tx_lines = ""
+    tx_lines = subprocess.check_output(full_cmd, shell=False)
+    tx_lines = tx_lines.decode('utf-8')
+    if len(tx_lines)>0:
+      if Options.DEBUG:
+        print(f"-> %s"%(tx_lines,), file=sys.stderr)
+        sys.stderr.flush()
+      else:
+        print(f"\n─────────┤%8s├─────────"%('tx'.center(8),))
+        print(tx_lines, end="")
+  except subprocess.CalledProcessError as pe:
+    if pe.returncode!=0:
+      print(f"-> using '%s' returned %d"%(full_cmd,pe.returncode,))
+      rc = pe.returncode
+  
+def show_downloads(sqlite, dbfilename, format):
+  """
+  List the download reception definitios
+  """
+  sql = f"SELECT * FROM rx ORDER BY id"
+  full_cmd = [ sqlite, format, dbfilename, sql ]
+  global Options
+  
+  if Options.DEBUG:
+    print(f"-> full_cmd='%s'"%(full_cmd,), file=sys.stderr)
+  try:                                     
+    rx_lines = ""
+    rx_lines = subprocess.check_output(full_cmd, shell=False)
+    rx_lines = rx_lines.decode('utf-8')
+    if len(rx_lines)>0:
+      if Options.DEBUG:
+        print(f"-> %s"%(rx_lines,), file=sys.stderr)
+        sys.stderr.flush()
+      else:
+        print(f"\n─────────┤%8s├─────────"%('rx'.center(8),))
+        print(rx_lines, end="")
+  except subprocess.CalledProcessError as pe:
+    if pe.returncode!=0:
+      print(f"-> using '%s' returned %d"%(full_cmd,pe.returncode,))
+      rc = pe.returncode
+  
+# START OF MAIN FILE
+try:
+  parser = OptionParser(usage="%prog --OPTIONS CONFIGURATIONFILE")
+  parser.add_option("-C", "--connections", dest="connections", action="store_true", help="List connections", default=False)
+  parser.add_option("-u","-T", "--uploads", dest="transmissions", action="store_true", help="List upload definitions", default=False)
+  parser.add_option("-d","-R", "--downloads", dest="receptions", action="store_true", help="List download definitions", default=False)
+  parser.add_option("--sqlite", "--sqlite3", "--sql", dest="sqlite", action="store", help=SUPPRESS_HELP, default="/usr/bin/sqlite3")
+  parser.add_option("--DEBUG", dest="DEBUG", action="store_true", help=SUPPRESS_HELP, default=False)
+  (Options, Args) = parser.parse_args()
+  Options.PrgName = "Davitrans"
+  Options.DBExt = ".db"
+  
+  if len(Args)!=1:
+    print(f"%s: too few arguments, the configuration database name must be given."%(Options.PrgName,), file=sys.stderr)
+    for start_dir, dirs, files in os.walk("."):
+      for a_file in files:
+        a_file_name, a_file_ext = os.path.splitext(a_file)
+        if a_file_ext.lower() == Options.DBExt.lower():
+          print(f"%s: possible configuration database '%s' found here."%(Options.PrgName,a_file), file=sys.stderr)
+  else:
+    dbfilename = Args[0]
+    sqlite = Options.sqlite
+    format = "-line"         # Nice output
+    print(f"%s: using '%s'"%(Options.PrgName,dbfilename))
+    if Options.connections:
+      show_connections(sqlite, dbfilename, format)
+    if Options.transmissions:
+      show_uploads(sqlite, dbfilename, format)
+    if Options.receptions:
+      show_downloads(sqlite, dbfilename, format)
+    if not (Options.connections or Options.transmissions or Options.receptions):
+      show_connections(sqlite, dbfilename, format)
+      show_uploads(sqlite, dbfilename, format)
+      show_downloads(sqlite, dbfilename, format)
+      
+except KeyboardInterrupt:
+  print(f"%s: Process cancelled!\n"%(Options.PrgName,))
+  sys.stderr.flush()
+  sys.exit(1)
+
+

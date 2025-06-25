@@ -1,0 +1,14 @@
+[Unit]
+Description=Transfer Eliot UAT Files Service
+After=network-online.target
+Wants=network-online.target
+
+[Service ]
+Type=simple
+WorkingDirectory=/trans/p2qadm
+User=p2qadm
+ExecStart=/usr/local/bin/davitrans -v -C 1 -w1 conf.db
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
